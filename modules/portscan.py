@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 
 import asyncio
+
 from modules.export import export
 from modules.write_log import log_writer
 
-R = '\033[31m'  # red
-G = '\033[32m'  # green
-C = '\033[36m'  # cyan
-W = '\033[0m'   # white
-Y = '\033[33m'  # yellow
+R = "\033[31m"  # red
+G = "\033[32m"  # green
+C = "\033[36m"  # cyan
+W = "\033[0m"  # white
+Y = "\033[33m"  # yellow
+HEADER = "\033[1;35m"  # bold magenta
 
 counter = 0
 port_list = {
-
     1: "tcpmux",
     9: "Discard",
     15: "netstat",
@@ -114,7 +115,6 @@ port_list = {
     10051: "Zabbix Server",
     11211: "Memcached",
     11300: "Beanstalkd",
-    1521: "Oracle DB",
     25565: "Minecraft",
     27015: "Source Engine Games",
     27017: "MongoDB",
@@ -125,62 +125,66 @@ port_list = {
     50070: "Hadoop",
     5555: "Open Remote",
     61616: "ActiveMQ",
-    
 }
+
+
 async def insert(queue):
-	for port in port_list:
-		await queue.put(port)
+    for port in port_list:
+        await queue.put(port)
 
 
 async def consumer(queue, ip_addr, result):
-	global counter
-	while True:
-		port = await queue.get()
-		await sock_conn(ip_addr, port, result)
-		queue.task_done()
-		counter += 1
-		print(f'{Y}[!] {C}Scanning : {W}{counter}/{len(port_list)}', end='\r')
+    global counter
+    while True:
+        port = await queue.get()
+        await sock_conn(ip_addr, port, result)
+        queue.task_done()
+        counter += 1
+        print(
+            f"{Y}[!]{W} Scanning : {counter}/{len(port_list)}",
+            end="\r",
+            flush=True,
+        )
 
 
 async def run(ip_addr, result, threads):
-	queue = asyncio.Queue(maxsize=threads)
-	distrib = asyncio.create_task(insert(queue))
-	workers = [
-		asyncio.create_task(
-			consumer(queue, ip_addr, result)
-		) for _ in range(threads)]
+    queue = asyncio.Queue(maxsize=threads)
+    distrib = asyncio.create_task(insert(queue))
+    workers = [
+        asyncio.create_task(consumer(queue, ip_addr, result)) for _ in range(threads)
+    ]
 
-	await asyncio.gather(distrib)
-	await queue.join()
-	for worker in workers:
-		worker.cancel()
+    await asyncio.gather(distrib)
+    await queue.join()
+    for worker in workers:
+        worker.cancel()
 
 
 def scan(ip_addr, output, data, threads):
     result = {}
-    result['ports'] = []
-    print(f'\n{Y}[!] Starting Port Scan...{W}\n')
-    print(f'{G}[+] {C}Scanning Top 100+ Ports With {threads} Threads...{W}\n')
+    result["ports"] = []
+    print(f"\n{HEADER}━━━ Port Scan {'━' * 30}{W}\n")
+    print(f"{C}[*]{W} Scanning Top {G}100+{W} Ports With {G}{threads}{W} Threads...\n")
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(run(ip_addr, result, threads))
     loop.close()
 
-    print(f'\n{G}[+] {C}Scan Completed!{W}\n')
+    print()
 
-    if output != 'None':
+    if output != "None":
         ps_output(output, data, result)
-    log_writer('[portscan] Completed')
+    log_writer("[portscan] Completed")
 
 
 async def sock_conn(ip_addr, port, result):
     try:
         connector = asyncio.open_connection(ip_addr, port)
         await asyncio.wait_for(connector, 1)
-        port_name = port_list[port]  # Get the port name from the port_list dictionary
-        print(f'\x1b[K{G}[+] {C}{port} ({port_name}){W}')
-        result['ports'].append(f"{port} ({port_name})")
+        port_name = port_list[port]
+        print(f"\r\033[K{G}[+]{W} {str(port).ljust(6)} {port_name}")
+        result["ports"].append(f"{port} ({port_name})")
         return True
     except TimeoutError:
         return False
@@ -189,8 +193,8 @@ async def sock_conn(ip_addr, port, result):
 
 
 def ps_output(output, data, result):
-	data['module-Port Scan'] = result
-	result.update({'exported': False})
-	fname = f'{output["directory"]}/ports.{output["format"]}'
-	output['file'] = fname
-	export(output, data)
+    data["module-Port Scan"] = result
+    result.update({"exported": False})
+    fname = f"{output['directory']}/ports.{output['format']}"
+    output["file"] = fname
+    export(output, data)

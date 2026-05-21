@@ -1,24 +1,27 @@
 #!/usr/bin/env python3
 
-import ssl
 import socket
-from modules.export import export
-from modules.write_log import log_writer
-from cryptography import x509
-from cryptography.hazmat.backends import default_backend
+import ssl
 from datetime import timezone
 
-R = '\033[31m'  # red
-G = '\033[32m'  # green
-C = '\033[36m'  # cyan
-W = '\033[0m'   # white
-Y = '\033[33m'  # yellow
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+
+from modules.export import export
+from modules.write_log import log_writer
+
+R = "\033[31m"  # red
+G = "\033[32m"  # green
+C = "\033[36m"  # cyan
+W = "\033[0m"  # white
+Y = "\033[33m"  # yellow
+HEADER = "\033[1;35m"  # bold magenta
 
 
 def cert(hostname, sslp, output, data):
     result = {}
     presence = False
-    print(f'\n{Y}[!] SSL Certificate Information : {W}\n')
+    print(f"\n{HEADER}━━━ TLS/SSL {'━' * 30}{W}\n")
 
     port_test = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     port_test.settimeout(5)
@@ -28,9 +31,9 @@ def cert(hostname, sslp, output, data):
         presence = True
     except Exception:
         port_test.close()
-        print(f'{R}[-] {C}SSL is not Present on Target URL...Skipping...{W}')
-        result.update({'Error': 'SSL is not Present on Target URL'})
-        log_writer('[sslinfo] SSL is not Present on Target URL...Skipping...')
+        print(f"{R}[-]{W} SSL is not Present on Target URL...Skipping...")
+        result.update({"Error": "SSL is not Present on Target URL"})
+        log_writer("[sslinfo] SSL is not Present on Target URL...Skipping...")
 
     def unpack(nested_tuple, pair):
         for item in nested_tuple:
@@ -46,25 +49,29 @@ def cert(hostname, sslp, output, data):
         pair = {}
         for key, val in info.items():
             if isinstance(val, tuple):
-                print(f'{G}[+] {C}{key}{W}')
+                print(f"{G}{key}{W}")
                 unpack(val, pair)
                 for sub_key, sub_val in pair.items():
-                    print(f'\t{G}└╴{C}{sub_key}: {W}{sub_val}')
-                    result.update({f'{key}-{sub_key}': sub_val})
+                    print(f"    └╴{sub_key} : {sub_val}")
+                    result.update({f"{key}-{sub_key}": sub_val})
                 pair.clear()
+                print()
             elif isinstance(val, dict):
-                print(f'{G}[+] {C}{key}{W}')
+                print(f"{G}{key}{W}")
                 for sub_key, sub_val in val.items():
-                    print(f'\t{G}└╴{C}{sub_key}: {W}{sub_val}')
-                    result.update({f'{key}-{sub_key}': sub_val})
+                    print(f"    └╴{sub_key} : {sub_val}")
+                    result.update({f"{key}-{sub_key}": sub_val})
+                print()
             elif isinstance(val, list):
-                print(f'{G}[+] {C}{key}{W}')
+                print(f"{G}{key}{W}")
                 for sub_val in val:
-                    print(f'\t{G}└╴{C}{val.index(sub_val)}: {W}{sub_val}')
-                    result.update({f'{key}-{val.index(sub_val)}': sub_val})
+                    print(f"    └╴{val.index(sub_val)} : {sub_val}")
+                    result.update({f"{key}-{val.index(sub_val)}": sub_val})
+                print()
             else:
-                print(f'{G}[+] {C}{key} : {W}{val}')
+                print(f"{G}{key}{W} : {val}")
                 result.update({key: val})
+                print()
 
     if presence:
         ctx = ssl.create_default_context()
@@ -94,7 +101,9 @@ def cert(hostname, sslp, output, data):
             issuer_dict[name] = value
 
         # Handle `not_valid_before` and `not_valid_after` with compatibility
-        if hasattr(decoded_cert, 'not_valid_before_utc') and hasattr(decoded_cert, 'not_valid_after_utc'):
+        if hasattr(decoded_cert, "not_valid_before_utc") and hasattr(
+            decoded_cert, "not_valid_after_utc"
+        ):
             not_before = decoded_cert.not_valid_before_utc
             not_after = decoded_cert.not_valid_after_utc
         else:
@@ -103,14 +112,14 @@ def cert(hostname, sslp, output, data):
             not_after = decoded_cert.not_valid_after.replace(tzinfo=timezone.utc)
 
         cert_dict = {
-            'protocol': ssl_conn.version(),
-            'cipher': ssl_conn.cipher(),
-            'subject': subject_dict,
-            'issuer': issuer_dict,
-            'version': decoded_cert.version,
-            'serialNumber': decoded_cert.serial_number,
-            'notBefore': not_before.strftime("%b %d %H:%M:%S %Y GMT"),
-            'notAfter': not_after.strftime("%b %d %H:%M:%S %Y GMT"),
+            "protocol": ssl_conn.version(),
+            "cipher": ssl_conn.cipher(),
+            "subject": subject_dict,
+            "issuer": issuer_dict,
+            "version": decoded_cert.version,
+            "serialNumber": decoded_cert.serial_number,
+            "notBefore": not_before.strftime("%b %d %H:%M:%S %Y GMT"),
+            "notAfter": not_after.strftime("%b %d %H:%M:%S %Y GMT"),
         }
 
         extensions = decoded_cert.extensions
@@ -122,14 +131,14 @@ def cert(hostname, sslp, output, data):
             for entry in san_entries:
                 if isinstance(entry, x509.DNSName):
                     subject_alt_names.append(entry.value)
-            cert_dict['subjectAltName'] = subject_alt_names
+            cert_dict["subjectAltName"] = subject_alt_names
 
         process_cert(cert_dict)
-    result.update({'exported': False})
+    result.update({"exported": False})
 
     if output:
-        fname = f'{output["directory"]}/ssl.{output["format"]}'
-        output['file'] = fname
-        data['module-SSL Certificate Information'] = result
+        fname = f"{output['directory']}/ssl.{output['format']}"
+        output["file"] = fname
+        data["module-SSL Certificate Information"] = result
         export(output, data)
-    log_writer('[sslinfo] Completed')
+    log_writer("[sslinfo] Completed")
