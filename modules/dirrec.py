@@ -227,21 +227,21 @@ async def filter_out(
     if status in {301, 302, 303, 307, 308}:
         location_key = normalize_location(location)
         length_counts[location_key] = length_counts.get(location_key, 0) + 1
-        if length_counts[location_key] == 5:
+        if length_counts[location_key] == 10:
             print(
                 f"\r\033[K{Y}[!]{W} Auto-filtering redirect to {location_key} — possible soft-404"
             )
-        if length_counts[location_key] >= 5:
+        if length_counts[location_key] >= 10:
             return
     else:
         if length > 0:
             length_key = round(length, -1)
             length_counts[length_key] = length_counts.get(length_key, 0) + 1
-            if length_counts[length_key] == 5:
+            if length_counts[length_key] == 10:
                 print(
                     f"\r\033[K{Y}[!]{W} Auto-filtering length ~{length_key} — possible soft-404"
                 )
-            if length_counts[length_key] >= 5:
+            if length_counts[length_key] >= 10:
                 found[:] = [
                     f
                     for f in found
