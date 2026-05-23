@@ -74,14 +74,19 @@ FinalRecon provides detailed information such as :
   - Security records highlighted
   - DMARC Records
 - Subdomain Enumeration
-  - Over 15 reliable data sources
+  - 15 reliable data sources
   - Real-time error reporting per source
 - Directory Enumeration
   - Phantom URL probing to reduce false positives
   - Smart real-time soft-404 filtering based on content length and redirect clustering
   - Support for File Extensions
 - Wayback Machine
-  - URLs from Last 5 Years
+  - 50,000 URLs are fetched
+  - URLs are triaged into :
+    - JS files
+    - API endpoints
+    - juicy parameters
+    - sensitive extensions
 - Port Scan
   - Fast
   - Top 1000 Ports
@@ -134,7 +139,7 @@ python3 finalrecon.py -k 'shodan@kl32lcdqwcdfv'
 | LeakIX     | Sub Domain Enum | https://leakix.net                           |
 | GitHub     | Sub Domain Enum | https://github.com/settings/tokens           |
 | Netlas     | Sub Domain Enum | https://docs.netlas.io/getting_started/      |
-| ZoomEye    | Sub Domain Enum | https://www.zoomeye.hk/                      |
+| ZoomEye    | Sub Domain Enum | https://www.zoomeye.ai/                      |
 | Hunter     | Sub Domain Enum | https://hunter.how/search-api                |
 
 ### JSON Config File
